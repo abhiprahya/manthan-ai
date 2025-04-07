@@ -1,15 +1,17 @@
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { ThoughtNode, Connection, Position } from '@/types/models';
+import { ThoughtNode, Connection, Position, NodeType, Media } from '@/types/models';
 import { v4 as uuidv4 } from 'uuid';
 
 interface CanvasContextType {
   nodes: ThoughtNode[];
   connections: Connection[];
   selectedNodeId: string | null;
-  addNode: (content: string, position: Position, isAI?: boolean) => string;
+  addNode: (content: string, position: Position, isAI?: boolean, type?: NodeType) => string;
   updateNodePosition: (id: string, position: Position) => void;
   updateNodeContent: (id: string, content: string) => void;
+  updateNodeMedia: (id: string, media: Media) => void;
+  updateNodeUrl: (id: string, url: string) => void;
   deleteNode: (id: string) => void;
   addConnection: (sourceId: string, targetId: string) => void;
   deleteConnection: (id: string) => void;
@@ -24,13 +26,14 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const addNode = (content: string, position: Position, isAI = false): string => {
+  const addNode = (content: string, position: Position, isAI = false, type: NodeType = 'text'): string => {
     const id = uuidv4();
     const newNode: ThoughtNode = {
       id,
       content,
       position,
       isAI,
+      type,
       createdAt: new Date(),
     };
     
@@ -50,6 +53,22 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     setNodes((prevNodes) =>
       prevNodes.map((node) =>
         node.id === id ? { ...node, content } : node
+      )
+    );
+  };
+
+  const updateNodeMedia = (id: string, media: Media) => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) =>
+        node.id === id ? { ...node, media } : node
+      )
+    );
+  };
+
+  const updateNodeUrl = (id: string, url: string) => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) =>
+        node.id === id ? { ...node, url } : node
       )
     );
   };
@@ -116,6 +135,8 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
         addNode,
         updateNodePosition,
         updateNodeContent,
+        updateNodeMedia,
+        updateNodeUrl,
         deleteNode,
         addConnection,
         deleteConnection,

@@ -2,10 +2,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCanvas } from '@/contexts/CanvasContext';
 import { generateAiResponse } from '@/services/aiService';
-import { Position } from '@/types/models';
+import { Position, NodeType } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SendHorizonal, Bot, Lightbulb } from 'lucide-react';
+import { SendHorizonal, Bot, Lightbulb, Image, Video, FileText, Link } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AiAssistant: React.FC = () => {
@@ -50,13 +50,13 @@ const AiAssistant: React.FC = () => {
       const response = await generateAiResponse(prompt);
       
       // Add the user's thought
-      const userNodeId = addNode(prompt, position);
+      const userNodeId = addNode(prompt, position, false, 'text');
       
       // Add the AI's response below the user's thought
       addNode(response.content, {
         x: position.x,
         y: position.y + 150,
-      }, true);
+      }, true, 'text');
       
       setPrompt('');
       toast.success("AI responded to your thought!");
@@ -78,7 +78,7 @@ const AiAssistant: React.FC = () => {
       const position = { x: 400, y: 200 };
       
       // Add the AI's idea
-      addNode(response.content, position, true);
+      addNode(response.content, position, true, 'text');
       
       toast.success("New idea generated!");
     } catch (error) {
@@ -87,6 +87,25 @@ const AiAssistant: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCreateContent = (type: NodeType) => {
+    // Find a position for the new node
+    let position: Position = { x: 300, y: 300 };
+    
+    if (selectedNodeId) {
+      const selectedNode = nodes.find(node => node.id === selectedNodeId);
+      if (selectedNode) {
+        position = {
+          x: selectedNode.position.x + 300,
+          y: selectedNode.position.y,
+        };
+      }
+    }
+    
+    // Create a new node of the specified type
+    const nodeId = addNode(`New ${type}`, position, false, type);
+    toast.success(`Created new ${type} card`);
   };
 
   return (
@@ -134,6 +153,48 @@ const AiAssistant: React.FC = () => {
           </Button>
         </div>
       </form>
+      
+      <div className="mt-4">
+        <h3 className="text-sm font-medium mb-2">Create Content</h3>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={() => handleCreateContent('image')}
+          >
+            <Image className="h-4 w-4" />
+            <span>Image</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={() => handleCreateContent('video')}
+          >
+            <Video className="h-4 w-4" />
+            <span>Video</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={() => handleCreateContent('document')}
+          >
+            <FileText className="h-4 w-4" />
+            <span>Document</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={() => handleCreateContent('url')}
+          >
+            <Link className="h-4 w-4" />
+            <span>URL</span>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
