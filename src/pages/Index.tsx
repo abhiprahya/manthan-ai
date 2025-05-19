@@ -24,7 +24,7 @@ const Index = () => {
               <ul className="text-sm space-y-2 text-muted-foreground">
                 <li>• Create multimodal content across text, image, video & audio</li>
                 <li>• Support for 10 Indic languages</li>
-                <li>• Export to CMS & OTT ready formats</li>
+                <li>• OpenAI integration for content generation</li>
                 <li>• Content metadata & IP management</li>
                 <li>• Performance analytics & audience insights</li>
               </ul>

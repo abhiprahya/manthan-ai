@@ -1,10 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useCanvas } from '@/contexts/CanvasContext';
-import { generateAiResponse } from '@/services/aiService';
+import { generateAiResponse, generateImage, analyzeContent } from '@/services/aiService';
 import { Position, NodeType, LanguageCode, Template } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import ApiKeyManager from '@/components/ApiKeyManager';
 import {
   SendHorizonal,
   Bot,
@@ -107,7 +107,7 @@ const AiAssistant: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await generateAiResponse(prompt);
+      const response = await generateAiResponse(prompt, selectedLanguage);
       
       // Add the user's thought
       const userNodeId = addNode(prompt, position, false, 'text');
@@ -119,7 +119,11 @@ const AiAssistant: React.FC = () => {
       }, true, 'text');
 
       // Add metadata to AI node
-      // In a real app, we would add proper metadata here
+      updateNodeMetadata(aiNodeId, {
+        aiGenerated: true,
+        language: selectedLanguage,
+        dateCreated: new Date()
+      });
       
       setPrompt('');
       toast.success("AI responded to your thought!");
@@ -135,13 +139,20 @@ const AiAssistant: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await generateAiResponse(`Generate a creative idea in ${getLanguageName(selectedLanguage)}`);
+      const response = await generateAiResponse(`Generate a creative idea in ${getLanguageName(selectedLanguage)}`, selectedLanguage);
       
       // Find a free spot on the canvas
       const position = { x: 400, y: 200 };
       
       // Add the AI's idea
-      addNode(response.content, position, true, 'text');
+      const nodeId = addNode(response.content, position, true, 'text');
+      
+      // Add metadata
+      updateNodeMetadata(nodeId, {
+        aiGenerated: true,
+        language: selectedLanguage,
+        dateCreated: new Date()
+      });
       
       toast.success("New idea generated!");
     } catch (error) {
@@ -211,26 +222,104 @@ const AiAssistant: React.FC = () => {
     toast.success(`Template "${template.name}" applied`);
   };
 
-  const handleAnalyzeContent = () => {
+  const handleGenerateImage = async () => {
+    if (!selectedNodeId) {
+      toast.warning("Please select a node with text prompt first");
+      return;
+    }
+    
+    const selectedNode = nodes.find(node => node.id === selectedNodeId);
+    if (!selectedNode || selectedNode.type !== 'text') {
+      toast.warning("Please select a text node to use as prompt");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const imageUrl = await generateImage(selectedNode.content);
+      
+      if (!imageUrl) {
+        throw new Error("Failed to generate image");
+      }
+      
+      // Create a new image node
+      const position = {
+        x: selectedNode.position.x + 300,
+        y: selectedNode.position.y,
+      };
+      
+      const imageNodeId = addNode("AI Generated Image", position, true, 'image');
+      
+      // Add the image media to the node
+      updateNodeMedia(imageNodeId, {
+        type: 'image',
+        url: imageUrl,
+        name: 'AI Generated Image',
+      });
+      
+      // Add metadata
+      updateNodeMetadata(imageNodeId, {
+        aiGenerated: true,
+        language: selectedLanguage,
+        dateCreated: new Date(),
+        title: "AI Generated Image",
+        description: `Generated from: ${selectedNode.content.substring(0, 50)}...`
+      });
+      
+      toast.success("Image generated successfully!");
+    } catch (error) {
+      console.error("Failed to generate image:", error);
+      toast.error("Failed to generate image. Please try again or check your API key.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAnalyzeContent = async () => {
     if (!selectedNodeId) {
       toast.warning("Please select a node to analyze");
       return;
     }
     
+    const selectedNode = nodes.find(node => node.id === selectedNodeId);
+    if (!selectedNode) {
+      return;
+    }
+    
     setIsInsightLoading(true);
     
-    // Simulate an analysis (in a real app, this would call an API)
-    setTimeout(() => {
-      toast.success("Content analyzed. See insights panel for details.");
+    try {
+      const analysis = await analyzeContent(selectedNode.content);
+      
+      if (!analysis) {
+        throw new Error("Failed to analyze content");
+      }
+      
+      // Update node with analysis metadata
+      updateNodeMetadata(selectedNodeId, {
+        engagementScore: analysis.engagementScore,
+        tags: analysis.keywords
+      });
+      
+      setActiveTab('insights');
+      toast.success("Content analyzed successfully!");
+    } catch (error) {
+      console.error("Failed to analyze content:", error);
+      toast.error("Failed to analyze content. Please try again or check your API key.");
+    } finally {
       setIsInsightLoading(false);
-    }, 1500);
+    }
   };
 
   return (
     <div className="bg-canvas-node shadow-lg rounded-lg p-4 flex flex-col gap-4">
-      <div className="flex items-center gap-2 text-primary font-medium">
-        <Bot className="h-5 w-5" />
-        <span>Manthan.AI Assistant</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-primary font-medium">
+          <Bot className="h-5 w-5" />
+          <span>Manthan.AI Assistant</span>
+        </div>
+        <ApiKeyManager />
       </div>
       
       <div className="flex items-center space-x-2 mb-2">
@@ -327,10 +416,11 @@ const AiAssistant: React.FC = () => {
                 variant="outline" 
                 size="sm"
                 className="flex items-center gap-1 h-7 text-xs"
-                onClick={() => handleCreateContent('image')}
+                onClick={handleGenerateImage}
+                disabled={isLoading}
               >
                 <Image className="h-3.5 w-3.5" />
-                <span>Image</span>
+                <span>Generate Image</span>
               </Button>
               <Button 
                 variant="outline" 
