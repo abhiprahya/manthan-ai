@@ -1,17 +1,19 @@
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { ThoughtNode, Connection, Position, NodeType, Media } from '@/types/models';
+import { ThoughtNode, Connection, Position, NodeType, Media, ContentMetadata, LanguageCode } from '@/types/models';
 import { v4 as uuidv4 } from 'uuid';
 
 interface CanvasContextType {
   nodes: ThoughtNode[];
   connections: Connection[];
   selectedNodeId: string | null;
-  addNode: (content: string, position: Position, isAI?: boolean, type?: NodeType) => string;
+  addNode: (content: string, position: Position, isAI?: boolean, type?: NodeType, languageCode?: LanguageCode) => string;
   updateNodePosition: (id: string, position: Position) => void;
   updateNodeContent: (id: string, content: string) => void;
   updateNodeMedia: (id: string, media: Media) => void;
   updateNodeUrl: (id: string, url: string) => void;
+  updateNodeMetadata: (id: string, metadata: ContentMetadata) => void;
+  updateNodeLanguage: (id: string, languageCode: LanguageCode) => void;
   deleteNode: (id: string) => void;
   addConnection: (sourceId: string, targetId: string) => void;
   deleteConnection: (id: string) => void;
@@ -26,7 +28,13 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const addNode = (content: string, position: Position, isAI = false, type: NodeType = 'text'): string => {
+  const addNode = (
+    content: string, 
+    position: Position, 
+    isAI = false, 
+    type: NodeType = 'text', 
+    languageCode: LanguageCode = 'en'
+  ): string => {
     const id = uuidv4();
     const newNode: ThoughtNode = {
       id,
@@ -34,7 +42,14 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       position,
       isAI,
       type,
+      languageCode,
       createdAt: new Date(),
+      metadata: {
+        tags: [],
+        dateCreated: new Date(),
+        aiGenerated: isAI,
+        language: languageCode
+      }
     };
     
     setNodes((prevNodes) => [...prevNodes, newNode]);
@@ -69,6 +84,33 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     setNodes((prevNodes) =>
       prevNodes.map((node) =>
         node.id === id ? { ...node, url } : node
+      )
+    );
+  };
+
+  const updateNodeMetadata = (id: string, metadata: ContentMetadata) => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) => 
+        node.id === id 
+          ? { ...node, metadata: { ...node.metadata, ...metadata } } 
+          : node
+      )
+    );
+  };
+
+  const updateNodeLanguage = (id: string, languageCode: LanguageCode) => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) => 
+        node.id === id 
+          ? { 
+              ...node, 
+              languageCode,
+              metadata: { 
+                ...node.metadata, 
+                language: languageCode 
+              }
+            } 
+          : node
       )
     );
   };
@@ -137,6 +179,8 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
         updateNodeContent,
         updateNodeMedia,
         updateNodeUrl,
+        updateNodeMetadata,
+        updateNodeLanguage,
         deleteNode,
         addConnection,
         deleteConnection,

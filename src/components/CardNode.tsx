@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useCanvas } from '@/contexts/CanvasContext';
-import { Position, Media, NodeType } from '@/types/models';
+import { Position, Media, NodeType, ContentMetadata } from '@/types/models';
 import { cn } from '@/lib/utils';
-import { Pencil, Trash2, MoreHorizontal, Link, Image, Video, Upload, FileText } from 'lucide-react';
+import { Pencil, Trash2, MoreHorizontal, Link, Image, Video, FileText, Upload, AudioLines, Tags, DollarSign } from 'lucide-react';
 import { 
   Card,
   CardContent,
@@ -13,7 +13,8 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -47,20 +48,40 @@ const CardNode: React.FC<CardNodeProps> = ({
     updateNodeContent, 
     updateNodeMedia,
     updateNodeUrl,
+    updateNodeMetadata,
     deleteNode, 
-    selectNode 
+    selectNode,
+    nodes
   } = useCanvas();
   
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Position | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingMetadata, setIsEditingMetadata] = useState(false);
   const [editContent, setEditContent] = useState(content);
   const [editUrl, setEditUrl] = useState(url || '');
   const [isUploading, setIsUploading] = useState(false);
+  const [editMetadata, setEditMetadata] = useState<ContentMetadata>({
+    title: '',
+    description: '',
+    tags: [],
+    rights: 'CC BY-NC',
+    attribution: '',
+    suggestedPrice: 0
+  });
   
   const nodeRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
+
+  // Get current node from context
+  const currentNode = nodes.find(node => node.id === id);
+
+  useEffect(() => {
+    if (currentNode?.metadata) {
+      setEditMetadata(currentNode.metadata);
+    }
+  }, [currentNode]);
 
   useEffect(() => {
     if (isEditing && urlInputRef.current) {
@@ -115,12 +136,22 @@ const CardNode: React.FC<CardNodeProps> = ({
     setEditUrl(url || '');
   };
 
+  const handleEditMetadata = () => {
+    setIsEditingMetadata(true);
+  };
+
   const handleSave = () => {
     updateNodeContent(id, editContent);
     if (type === 'url' && editUrl) {
       updateNodeUrl(id, editUrl);
     }
     setIsEditing(false);
+  };
+
+  const handleSaveMetadata = () => {
+    updateNodeMetadata(id, editMetadata);
+    setIsEditingMetadata(false);
+    toast.success("Metadata updated");
   };
 
   const handleDelete = () => {
@@ -147,6 +178,7 @@ const CardNode: React.FC<CardNodeProps> = ({
       const fileType = file.type.split('/')[0];
       if ((type === 'image' && !file.type.startsWith('image/')) ||
           (type === 'video' && !file.type.startsWith('video/')) ||
+          (type === 'audio' && !file.type.startsWith('audio/')) ||
           (type === 'document' && !['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type))) {
         toast.error(`Invalid file type for ${type} node.`);
         return;
@@ -157,10 +189,14 @@ const CardNode: React.FC<CardNodeProps> = ({
       
       // Update node with media info
       updateNodeMedia(id, {
-        type: fileType as 'image' | 'video' | 'document',
+        type: fileType as 'image' | 'video' | 'audio' | 'document',
         url,
         name: file.name,
-        size: file.size
+        size: file.size,
+        metadata: {
+          title: file.name,
+          dateCreated: new Date()
+        }
       });
       
       toast.success(`${file.name} uploaded successfully.`);
@@ -200,7 +236,111 @@ const CardNode: React.FC<CardNodeProps> = ({
     }
   };
 
+  const handleTagInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const value = (e.target as HTMLInputElement).value.trim();
+      if (value && !editMetadata.tags?.includes(value)) {
+        setEditMetadata({
+          ...editMetadata,
+          tags: [...(editMetadata.tags || []), value]
+        });
+        (e.target as HTMLInputElement).value = '';
+      }
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setEditMetadata({
+      ...editMetadata,
+      tags: editMetadata.tags?.filter(t => t !== tag)
+    });
+  };
+
   const renderCardContent = () => {
+    if (isEditingMetadata) {
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium block mb-1">Title</label>
+            <Input
+              value={editMetadata.title || ''}
+              onChange={(e) => setEditMetadata({...editMetadata, title: e.target.value})}
+              placeholder="Content title"
+              className="text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Description</label>
+            <Input
+              value={editMetadata.description || ''}
+              onChange={(e) => setEditMetadata({...editMetadata, description: e.target.value})}
+              placeholder="Brief description"
+              className="text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Tags (press Enter to add)</label>
+            <Input
+              placeholder="Add tags..."
+              className="text-sm mb-1"
+              onKeyDown={handleTagInput}
+            />
+            <div className="flex flex-wrap gap-1 mt-1">
+              {editMetadata.tags?.map((tag, i) => (
+                <div key={i} className="bg-muted text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                  {tag}
+                  <button onClick={() => removeTag(tag)} className="text-muted-foreground hover:text-foreground">✕</button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Rights</label>
+            <Input
+              value={editMetadata.rights || ''}
+              onChange={(e) => setEditMetadata({...editMetadata, rights: e.target.value})}
+              placeholder="CC BY-NC"
+              className="text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Attribution</label>
+            <Input
+              value={editMetadata.attribution || ''}
+              onChange={(e) => setEditMetadata({...editMetadata, attribution: e.target.value})}
+              placeholder="Creator name"
+              className="text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Suggested Price (₹)</label>
+            <Input
+              type="number"
+              value={editMetadata.suggestedPrice || 0}
+              onChange={(e) => setEditMetadata({...editMetadata, suggestedPrice: Number(e.target.value)})}
+              placeholder="0"
+              className="text-sm"
+            />
+          </div>
+          <div className="flex justify-end space-x-2 pt-2">
+            <button 
+              className="px-2 py-1 text-xs bg-muted rounded"
+              onClick={() => setIsEditingMetadata(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded"
+              onClick={handleSaveMetadata}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (isEditing) {
       if (type === 'url') {
         return (
@@ -265,6 +405,33 @@ const CardNode: React.FC<CardNodeProps> = ({
       );
     }
 
+    // Render metadata section if available
+    const renderMetadata = () => {
+      if (currentNode?.metadata && Object.keys(currentNode.metadata).some(key => !!currentNode.metadata?.[key as keyof ContentMetadata])) {
+        return (
+          <div className="mt-2 pt-2 border-t border-muted">
+            {currentNode.metadata.title && <p className="text-xs font-medium">{currentNode.metadata.title}</p>}
+            {currentNode.metadata.tags && currentNode.metadata.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {currentNode.metadata.tags.map((tag, i) => (
+                  <span key={i} className="text-[10px] bg-muted/50 px-1.5 py-0.5 rounded-full">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            {currentNode.metadata.suggestedPrice ? (
+              <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+                <DollarSign className="h-3 w-3" />
+                <span>₹{currentNode.metadata.suggestedPrice}</span>
+              </div>
+            ) : null}
+          </div>
+        );
+      }
+      return null;
+    };
+
     switch (type) {
       case 'image':
         return (
@@ -282,6 +449,7 @@ const CardNode: React.FC<CardNodeProps> = ({
                   className="w-full h-auto max-h-40 object-contain rounded-md" 
                 />
                 <p className="mt-2 text-sm text-center">{content || media.name}</p>
+                {renderMetadata()}
               </div>
             ) : (
               <div 
@@ -318,6 +486,7 @@ const CardNode: React.FC<CardNodeProps> = ({
                   className="w-full h-auto max-h-40 object-contain rounded-md" 
                 />
                 <p className="mt-2 text-sm text-center">{content || media.name}</p>
+                {renderMetadata()}
               </div>
             ) : (
               <div 
@@ -330,6 +499,43 @@ const CardNode: React.FC<CardNodeProps> = ({
                   ref={fileInputRef}
                   type="file"
                   accept="video/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+            )}
+          </div>
+        );
+        
+      case 'audio':
+        return (
+          <div 
+            className="w-full h-full flex flex-col items-center justify-center"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onPaste={handlePaste}
+          >
+            {media ? (
+              <div className="w-full">
+                <audio 
+                  src={media.url}
+                  controls
+                  className="w-full mt-2" 
+                />
+                <p className="mt-2 text-sm text-center">{content || media.name}</p>
+                {renderMetadata()}
+              </div>
+            ) : (
+              <div 
+                className="w-full h-32 flex flex-col items-center justify-center bg-muted/30 border-2 border-dashed border-muted rounded-md cursor-pointer"
+                onClick={triggerFileInput}
+              >
+                <AudioLines className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-xs text-muted-foreground">Click or drop audio here</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -378,6 +584,7 @@ const CardNode: React.FC<CardNodeProps> = ({
                 />
               </div>
             )}
+            {renderMetadata()}
           </div>
         );
         
@@ -397,6 +604,7 @@ const CardNode: React.FC<CardNodeProps> = ({
                   </a>
                 </div>
                 {content && <p className="text-sm">{content}</p>}
+                {renderMetadata()}
               </div>
             ) : (
               <div className="flex flex-col space-y-2">
@@ -407,7 +615,12 @@ const CardNode: React.FC<CardNodeProps> = ({
         );
         
       default:
-        return <p className="text-sm">{content}</p>;
+        return (
+          <>
+            <p className="text-sm">{content}</p>
+            {renderMetadata()}
+          </>
+        );
     }
   };
 
@@ -417,6 +630,8 @@ const CardNode: React.FC<CardNodeProps> = ({
         return <Image className="h-4 w-4" />;
       case 'video':
         return <Video className="h-4 w-4" />;
+      case 'audio':
+        return <AudioLines className="h-4 w-4" />;
       case 'document':
         return <FileText className="h-4 w-4" />;
       case 'url':
@@ -475,10 +690,15 @@ const CardNode: React.FC<CardNodeProps> = ({
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleEditMetadata}>
+                  <Tags className="mr-2 h-4 w-4" />
+                  Metadata
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={onStartConnecting}>
                   <Link className="mr-2 h-4 w-4" />
                   Connect
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete

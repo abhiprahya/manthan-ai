@@ -20,17 +20,18 @@ const Index = () => {
             <AiAssistant />
             
             <div className="mt-6 p-4 bg-canvas-node rounded-lg shadow-sm">
-              <h3 className="font-medium mb-2">Tips</h3>
+              <h3 className="font-medium mb-2">Manthan.AI Features</h3>
               <ul className="text-sm space-y-2 text-muted-foreground">
-                <li>• Double-click anywhere to create a thought</li>
-                <li>• Drag thoughts to reposition them</li>
-                <li>• Connect related thoughts with the connect option</li>
-                <li>• Ask the AI to respond to your thoughts</li>
+                <li>• Create multimodal content across text, image, video & audio</li>
+                <li>• Support for 10 Indic languages</li>
+                <li>• Export to CMS & OTT ready formats</li>
+                <li>• Content metadata & IP management</li>
+                <li>• Performance analytics & audience insights</li>
               </ul>
             </div>
             
             <div className="mt-4 text-xs text-center text-muted-foreground">
-              Thought Space — A visual AI workspace
+              Manthan.AI — Indic-first creative infrastructure
             </div>
           </aside>
         </main>
