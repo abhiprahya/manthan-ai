@@ -1,3 +1,4 @@
+
 // AI service for connecting to OpenAI APIs
 
 import { toast } from 'sonner';
@@ -13,9 +14,8 @@ const OPENAI_MODELS = {
   advanced: "gpt-4o", // More powerful model
 };
 
-// Default API key - DO NOT USE this pattern in production environments
-// This is only for demonstration purposes
-const DEFAULT_API_KEY = "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";
+// Default API key - This is a placeholder only, will be replaced with user's API key
+const DEFAULT_API_KEY = "";
 
 // Interface for OpenAI API parameters
 interface OpenAIRequestParams {
@@ -42,8 +42,14 @@ const defaultResponses: string[] = [
 
 // Generate content using OpenAI API
 export const generateAiResponse = async (prompt: string, languageCode: LanguageCode = 'en'): Promise<AiResponse> => {
-  // Check if OpenAI API key is available from localStorage, otherwise use default
-  const apiKey = localStorage.getItem('openai_api_key') || DEFAULT_API_KEY;
+  // Check if OpenAI API key is available from localStorage
+  const apiKey = localStorage.getItem('openai_api_key');
+  
+  if (!apiKey) {
+    toast.error("Please set your OpenAI API key in settings");
+    // Return fallback response
+    return generateFallbackResponse(prompt);
+  }
   
   try {
     const params: OpenAIRequestParams = {
@@ -171,8 +177,13 @@ export const getLanguageName = (code: LanguageCode): string => {
 
 // Image generation with OpenAI
 export const generateImage = async (prompt: string): Promise<string | null> => {
-  // Use default API key if not set in localStorage
-  const apiKey = localStorage.getItem('openai_api_key') || DEFAULT_API_KEY;
+  // Get API key from localStorage
+  const apiKey = localStorage.getItem('openai_api_key');
+  
+  if (!apiKey) {
+    toast.error("Please set your OpenAI API key in settings");
+    return null;
+  }
   
   try {
     const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -204,8 +215,13 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
 
 // Content analysis with OpenAI
 export const analyzeContent = async (content: string): Promise<any> => {
-  // Use default API key if not set in localStorage
-  const apiKey = localStorage.getItem('openai_api_key') || DEFAULT_API_KEY;
+  // Get API key from localStorage
+  const apiKey = localStorage.getItem('openai_api_key');
+  
+  if (!apiKey) {
+    toast.error("Please set your OpenAI API key in settings");
+    return null;
+  }
   
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
