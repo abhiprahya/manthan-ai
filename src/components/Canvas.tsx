@@ -3,7 +3,7 @@ import { useCanvas } from '@/contexts/CanvasContext';
 import ThoughtNode from './ThoughtNode';
 import CardNode from './CardNode';
 import { Position, NodeType, WorkflowExport, LanguageCode } from '@/types/models';
-import { Plus, Download, Languages, Settings, Users, Layers, TrendingUp } from 'lucide-react';
+import { Plus, Download, Languages, Settings, Users, Layers, TrendingUp, Sparkles } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -15,7 +15,11 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
-const Canvas: React.FC = () => {
+interface CanvasProps {
+  onCreateContent?: () => void;
+}
+
+const Canvas: React.FC<CanvasProps> = ({ onCreateContent }) => {
   const {
     nodes,
     connections,
@@ -236,38 +240,42 @@ const Canvas: React.FC = () => {
   
   // Create a new node with the specified type
   const createNode = (type: NodeType) => {
-    if (canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = (rect.width / 2 - offset.x) / scale;
-      const y = (rect.height / 2 - offset.y) / scale;
-      
-      let content = "";
-      switch (type) {
-        case 'text':
-          content = "Add your content here";
-          break;
-        case 'image':
-          content = "Image";
-          break;
-        case 'video':
-          content = "Video";
-          break;
-        case 'audio':
-          content = "Audio";
-          break;
-        case 'document':
-          content = "Document";
-          break;
-        case 'url':
-          content = "Add URL";
-          break;
-        case 'template':
-          content = "Choose a template";
-          break;
+    if (onCreateContent) {
+      onCreateContent();
+    } else {
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = (rect.width / 2 - offset.x) / scale;
+        const y = (rect.height / 2 - offset.y) / scale;
+        
+        let content = "";
+        switch (type) {
+          case 'text':
+            content = "Add your content here";
+            break;
+          case 'image':
+            content = "Image";
+            break;
+          case 'video':
+            content = "Video";
+            break;
+          case 'audio':
+            content = "Audio";
+            break;
+          case 'document':
+            content = "Document";
+            break;
+          case 'url':
+            content = "Add URL";
+            break;
+          case 'template':
+            content = "Choose a template";
+            break;
+        }
+        
+        const newNodeId = addNode(content, { x, y }, false, type);
+        selectNode(newNodeId);
       }
-      
-      const newNodeId = addNode(content, { x, y }, false, type);
-      selectNode(newNodeId);
     }
   };
   
@@ -484,41 +492,15 @@ const Canvas: React.FC = () => {
         </button>
       </div>
       
-      {/* Node Creation Floating Button */}
+      {/* Create Content Button */}
       <div className="absolute bottom-4 right-4 flex space-x-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => createNode('text')}>
-              Text
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => createNode('image')}>
-              Image
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => createNode('video')}>
-              Video
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => createNode('audio')}>
-              Audio
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => createNode('document')}>
-              Document
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => createNode('url')}>
-              URL
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => createNode('template')}>
-              From Template
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <button 
+          className="bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors flex gap-2 items-center px-5"
+          onClick={() => onCreateContent ? onCreateContent() : createNode('text')}
+        >
+          <Sparkles className="h-5 w-5" />
+          <span>Create Content</span>
+        </button>
       </div>
       
       {/* Connection Notification */}
@@ -528,7 +510,7 @@ const Canvas: React.FC = () => {
         </div>
       )}
 
-      {/* Enterprise Panel */}
+      {/* Enterprise Panel - kept for insights */}
       {isPanelOpen && (
         <div className="absolute top-16 left-4 w-[350px] bg-background border rounded-lg shadow-lg p-4 z-50">
           <div className="flex justify-between items-center mb-4">
@@ -544,7 +526,6 @@ const Canvas: React.FC = () => {
           <Tabs defaultValue="insights" className="w-full">
             <TabsList className="w-full mb-4">
               <TabsTrigger value="insights" className="flex-1">Insights</TabsTrigger>
-              <TabsTrigger value="templates" className="flex-1">Templates</TabsTrigger>
               <TabsTrigger value="metadata" className="flex-1">Metadata</TabsTrigger>
             </TabsList>
             
@@ -586,23 +567,6 @@ const Canvas: React.FC = () => {
                     </Badge>
                   ))}
                 </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="templates" className="space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                {['Blog Post', 'Video Script', 'Social Media', 'News Article'].map((template) => (
-                  <div 
-                    key={template} 
-                    className="border rounded-md p-2 text-center cursor-pointer hover:bg-muted/50"
-                    onClick={() => toast.info(`Template "${template}" selected`)}
-                  >
-                    <div className="h-16 bg-muted mb-2 rounded-md flex items-center justify-center text-2xl">
-                      📄
-                    </div>
-                    <p className="text-xs font-medium">{template}</p>
-                  </div>
-                ))}
               </div>
             </TabsContent>
             

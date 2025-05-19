@@ -1,11 +1,17 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { CanvasProvider } from '@/contexts/CanvasContext';
 import Canvas from '@/components/Canvas';
-import AiAssistant from '@/components/AiAssistant';
 import Header from '@/components/Header';
+import ContentGenerator from '@/components/ContentGenerator';
 
 const Index = () => {
+  const [showContentGenerator, setShowContentGenerator] = useState(true);
+
+  const toggleContentGenerator = () => {
+    setShowContentGenerator(!showContentGenerator);
+  };
+
   return (
     <CanvasProvider>
       <div className="flex flex-col h-screen">
@@ -13,13 +19,19 @@ const Index = () => {
         
         <main className="flex flex-1 overflow-hidden">
           <div className="flex-1 relative">
-            <Canvas />
+            <Canvas onCreateContent={() => setShowContentGenerator(true)} />
+            
+            {showContentGenerator && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                <div className="bg-background rounded-lg shadow-xl w-full max-w-2xl">
+                  <ContentGenerator onClose={toggleContentGenerator} />
+                </div>
+              </div>
+            )}
           </div>
           
           <aside className="w-80 border-l bg-background overflow-y-auto p-4">
-            <AiAssistant />
-            
-            <div className="mt-6 p-4 bg-canvas-node rounded-lg shadow-sm">
+            <div className="p-4 bg-canvas-node rounded-lg shadow-sm">
               <h3 className="font-medium mb-2">Manthan.AI Features</h3>
               <ul className="text-sm space-y-2 text-muted-foreground">
                 <li>• Create multimodal content across text, image, video & audio</li>

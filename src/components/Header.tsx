@@ -35,7 +35,7 @@ const Header: React.FC = () => {
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `thought-space-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `manthan-ai-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     
     URL.revokeObjectURL(url);
@@ -46,7 +46,7 @@ const Header: React.FC = () => {
     <header className="flex items-center justify-between p-4 border-b">
       <div className="flex items-center gap-2">
         <Sparkles className="h-6 w-6 text-primary" />
-        <h1 className="text-xl font-medium">Thought Space</h1>
+        <h1 className="text-xl font-medium">Manthan.AI</h1>
       </div>
       
       <div className="flex items-center gap-2">
