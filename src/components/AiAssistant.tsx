@@ -65,7 +65,14 @@ const SAMPLE_TEMPLATES: Template[] = [
 ];
 
 const AiAssistant: React.FC = () => {
-  const { addNode, selectedNodeId, nodes } = useCanvas();
+  const { 
+    addNode, 
+    selectedNodeId, 
+    nodes, 
+    updateNodeMetadata, 
+    updateNodeMedia 
+  } = useCanvas();
+  
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>('en');
