@@ -15,7 +15,8 @@ import {
   Link,
   AudioLines,
   Languages,
-  Layout
+  Layout,
+  TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
